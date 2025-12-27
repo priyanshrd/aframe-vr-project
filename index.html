@@ -2,26 +2,108 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>VR Test</title>
+    <title>VR Gaze Teleport</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+
+    <!-- Teleport component -->
+    <script>
+      AFRAME.registerComponent('gaze-teleport', {
+        schema: { target: { type: 'string' } },
+        init: function () {
+          this.el.addEventListener('click', () => {
+            const sky = document.querySelector('#sky');
+            const sound = document.querySelector('#teleportSound');
+            sound.components.sound.playSound();
+            setTimeout(() => {
+              sky.setAttribute('src', this.data.target);
+              updateHotspots();
+            }, 300);
+          });
+        }
+      });
+
+      function updateHotspots() {
+        const skySrc = document.querySelector('#sky').getAttribute('src');
+        const toRoom2 = document.querySelector('#toRoom2');
+        const toRoom1 = document.querySelector('#toRoom1');
+
+        if (skySrc === 'room1.jpg') {
+          toRoom2.setAttribute('visible', true);
+          toRoom1.setAttribute('visible', false);
+        } else {
+          toRoom2.setAttribute('visible', false);
+          toRoom1.setAttribute('visible', true);
+        }
+      }
+    </script>
   </head>
 
   <body>
     <a-scene>
 
-      <!-- 360 background -->
-      <a-sky src="assets/room1.jpg"></a-sky>
+      <!-- SKY -->
+      <a-sky id="sky" src="room1.jpg"></a-sky>
 
-      <!-- Camera + cursor -->
+      <!-- TELEPORT SOUND -->
+      <a-entity
+        id="teleportSound"
+        sound="src: teleport.mp3; volume: 0.7">
+      </a-entity>
+
+      <!-- ROOM 1 → ROOM 2 TELEPORT -->
+      <a-sphere
+        id="toRoom2"
+        position="2 1.6 -3"
+        radius="0.25"
+        color="#00ffcc"
+        animation="property: scale; dir: alternate; dur: 800; loop: true; to: 1.2 1.2 1.2"
+        gaze-teleport="target: room2.jpg">
+      </a-sphere>
+
+      <a-text
+        value="Teleport to Room 2"
+        position="2 2 -3"
+        align="center"
+        color="white">
+      </a-text>
+
+      <!-- ROOM 2 → ROOM 1 TELEPORT -->
+      <a-sphere
+        id="toRoom1"
+        position="-2 1.6 -3"
+        radius="0.25"
+        color="#ff0066"
+        visible="false"
+        animation="property: scale; dir: alternate; dur: 800; loop: true; to: 1.2 1.2 1.2"
+        gaze-teleport="target: room1.jpg">
+      </a-sphere>
+
+      <a-text
+        id="backText"
+        value="Back to Room 1"
+        position="-2 2 -3"
+        align="center"
+        color="white"
+        visible="false">
+      </a-text>
+
+      <!-- CAMERA + GAZE CURSOR -->
       <a-camera>
         <a-cursor
           fuse="true"
           fuse-timeout="1200"
-          color="white">
+          color="white"
+          animation__fuse="property: scale; startEvents: fusing; dur: 1200; to: 0.2 0.2 0.2">
         </a-cursor>
       </a-camera>
 
     </a-scene>
+
+    <script>
+      updateHotspots();
+    </script>
+
   </body>
 </html>
