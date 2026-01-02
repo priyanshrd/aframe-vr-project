@@ -9,39 +9,89 @@
 
     <!-- Teleport component -->
     <script>
-      AFRAME.registerComponent('gaze-teleport', {
-        schema: { target: { type: 'string' } },
-        init: function () {
-          this.el.addEventListener('click', () => {
-            const sky = document.querySelector('#sky');
-            const sound = document.querySelector('#teleportSound');
-            sound.components.sound.playSound();
-            setTimeout(() => {
-              sky.setAttribute('src', this.data.target);
-              updateHotspots();
-            }, 300);
+  AFRAME.registerComponent('gaze-teleport', {
+    schema: { target: { type: 'string' } },
+    init: function () {
+      this.el.addEventListener('click', () => {
+        const sky = document.querySelector('#sky');
+        const fade = document.querySelector('#fade');
+        const sound = document.querySelector('#teleportSound');
+
+        // Play sound immediately on gaze click
+        sound.components.sound.playSound();
+
+        // Fade to black
+        fade.setAttribute('animation', {
+          property: 'material.opacity',
+          to: 1,
+          dur: 400,
+          easing: 'easeInOutQuad'
+        });
+
+        // Switch room while screen is black
+        setTimeout(() => {
+          sky.setAttribute('src', this.data.target);
+        }, 400);
+
+        // Fade back in
+        setTimeout(() => {
+          fade.setAttribute('animation', {
+            property: 'material.opacity',
+            to: 0,
+            dur: 400,
+            easing: 'easeInOutQuad'
           });
-        }
+        }, 800);
       });
+    }
+  });
+</script>
+     <script>
+AFRAME.registerComponent('mic-info', {
+  init: function () {
+    const mic = this.el;
 
-      function updateHotspots() {
-        const skySrc = document.querySelector('#sky').getAttribute('src');
-        const toRoom2 = document.querySelector('#toRoom2');
-        const toRoom1 = document.querySelector('#toRoom1');
+    mic.addEventListener('click', () => {
+      const sky = document.querySelector('#sky');
+      const micSound1 = document.querySelector('#infoRoom1');
+      const micSound2 = document.querySelector('#infoRoom2');
 
-        if (skySrc === 'room1.jpg') {
-          toRoom2.setAttribute('visible', true);
-          toRoom1.setAttribute('visible', false);
-        } else {
-          toRoom2.setAttribute('visible', false);
-          toRoom1.setAttribute('visible', true);
-        }
+      // Hide mic while audio plays
+      mic.setAttribute('visible', false);
+
+      let soundEntity;
+
+      if (sky.getAttribute('src') === 'room1.jpg') {
+        soundEntity = micSound1;
+      } else {
+        soundEntity = micSound2;
       }
-    </script>
+
+      soundEntity.components.sound.playSound();
+
+      // Reappear mic after audio ends
+      soundEntity.addEventListener('sound-ended', function handler() {
+        mic.setAttribute('visible', true);
+        soundEntity.removeEventListener('sound-ended', handler);
+      });
+    });
+  }
+});
+</script>
+
   </head>
 
   <body>
     <a-scene>
+<!-- MIC HOTSPOT -->
+<a-image
+  id="mic"
+  src="mic.png"
+  position="0 2.6 -3"
+  scale="0.4 0.4 0.4"
+  look-at="[camera]"
+  mic-info>
+</a-image>
 
       <!-- SKY -->
       <a-sky id="sky" src="room1.jpg"></a-sky>
@@ -49,8 +99,12 @@
       <!-- TELEPORT SOUND -->
       <a-entity
         id="teleportSound"
-        sound="src: teleport.mp3; volume: 0.7">
-      </a-entity>
+        sound="src: ./teleport.mp3; preload: true; volume: 1.0">
+        </a-entity>
+<!-- INFO AUDIO -->
+<a-entity id="infoRoom1" sound="src: info-room1.mp3"></a-entity>
+<a-entity id="infoRoom2" sound="src: info-room2.mp3"></a-entity>
+
 
       <!-- ROOM 1 → ROOM 2 TELEPORT -->
       <a-sphere
@@ -61,6 +115,14 @@
         animation="property: scale; dir: alternate; dur: 800; loop: true; to: 1.2 1.2 1.2"
         gaze-teleport="target: room2.jpg">
       </a-sphere>
+      <a-plane
+        id="fade"
+        position="0 1.6 -0.5"
+        width="4"
+        height="4"
+        material="color: black; opacity: 0"
+        visible="true">
+        </a-plane>
 
       <a-text
         value="Teleport to Room 2"
